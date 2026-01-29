@@ -11,6 +11,7 @@ import EventDetail from "./pages/EventDetail";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Auth from "./pages/Auth";
+import CreateEvent from "./pages/CreateEvent";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,14 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/event/:id" element={<EventDetail />} />
+            <Route
+              path="/create"
+              element={
+                <ProtectedRoute>
+                  <CreateEvent />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/dashboard"
               element={
