@@ -47,7 +47,7 @@ class EventRegistration(Base):
     
     registration_date = Column(DateTime, default=datetime.utcnow, nullable=False)
     status = Column(
-        SQLEnum(RegistrationStatus),
+        SQLEnum(RegistrationStatus, values_callable=lambda obj: [e.value for e in obj]),
         default=RegistrationStatus.CONFIRMED,
         nullable=False
     )

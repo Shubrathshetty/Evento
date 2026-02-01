@@ -1,19 +1,45 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarDays, Ticket, User } from "lucide-react";
-import { events, Event } from "@/data/events";
+import { CalendarDays, Ticket, User, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-
-// Mock data for user's registered events
-const registeredEvents: Event[] = [events[0], events[2]];
+import { registrationsService, type Registration } from "@/services/registrationsService";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { toast } = useToast();
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRegistrations = async () => {
+      if (!user) return;
+      try {
+        const regs = await registrationsService.getMyRegistrations();
+        setRegistrations(regs);
+      } catch (error) {
+        console.error("Failed to fetch registrations", error);
+        toast({
+          title: "Error",
+          description: "Failed to load your registrations.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRegistrations();
+  }, [user, toast]);
+
+  const upcomingEvents = registrations.filter(
+    (reg) => new Date(reg.event?.date || "") > new Date() && reg.status !== 'cancelled'
+  );
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -24,14 +50,16 @@ const Dashboard = () => {
           <div>
             <h1 className="text-3xl font-bold mb-2">My Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome back, {user?.email}
+              Welcome back, {user?.name || user?.email}
             </p>
           </div>
-          <Link to="/create">
-            <Button className="mt-4 md:mt-0 bg-event-purple hover:bg-event-dark-purple">
-              Create New Event
-            </Button>
-          </Link>
+          {user?.role === 'admin' && (
+            <Link to="/admin">
+              <Button className="mt-4 md:mt-0 bg-primary hover:bg-primary/90">
+                Go to Admin Dashboard
+              </Button>
+            </Link>
+          )}
         </div>
 
         <Tabs defaultValue="upcoming" className="w-full">
@@ -52,30 +80,38 @@ const Dashboard = () => {
 
           <TabsContent value="upcoming" className="space-y-6">
             <h2 className="text-xl font-semibold mb-4">Upcoming Events</h2>
-            {registeredEvents.length > 0 ? (
+            {loading ? (
+              <div className="text-center py-12">Loading...</div>
+            ) : upcomingEvents.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {registeredEvents.map((event) => (
-                  <Card key={event.id} className="overflow-hidden">
+                {upcomingEvents.map((reg) => (
+                  <Card key={reg.id} className="overflow-hidden">
                     <div className="flex flex-col sm:flex-row h-full">
-                      <div className="w-full sm:w-1/3">
+                      <div className="w-full sm:w-1/3 bg-gray-100">
                         <img
-                          src={event.image}
-                          alt={event.title}
-                          className="h-full w-full object-cover"
+                          src={reg.event?.image_url || "/placeholder.svg"}
+                          alt={reg.event?.title || "Event"}
+                          className="h-full w-full object-cover min-h-[150px]"
                         />
                       </div>
                       <CardContent className="flex-1 p-4">
                         <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="font-semibold">{event.title}</h3>
+                            <h3 className="font-semibold">{reg.event?.title}</h3>
                             <p className="text-sm text-muted-foreground mb-2">
-                              {new Date(event.date).toLocaleDateString()} at {event.time}
+                              {reg.event?.date && new Date(reg.event.date).toLocaleDateString()} at {reg.event?.time}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {event.location}
+                              {reg.event?.location}
                             </p>
+                            <div className="mt-2">
+                              <span className={`text-xs px-2 py-1 rounded-full ${reg.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                {reg.status.charAt(0).toUpperCase() + reg.status.slice(1)}
+                              </span>
+                            </div>
                           </div>
-                          <Link to={`/event/${event.id}`}>
+                          <Link to={`/event/${reg.event?.id}`}>
                             <Button variant="ghost" size="sm">
                               View
                             </Button>
@@ -102,31 +138,31 @@ const Dashboard = () => {
 
           <TabsContent value="tickets" className="space-y-6">
             <h2 className="text-xl font-semibold mb-4">My Tickets</h2>
-            {registeredEvents.length > 0 ? (
+            {upcomingEvents.filter(r => r.status === 'confirmed').length > 0 ? (
               <div className="space-y-4">
-                {registeredEvents.map((event) => (
-                  <Card key={event.id} className="overflow-hidden">
+                {upcomingEvents.filter(r => r.status === 'confirmed').map((reg) => (
+                  <Card key={reg.id} className="overflow-hidden">
                     <CardContent className="p-6">
                       <div className="flex flex-col md:flex-row justify-between">
                         <div className="mb-4 md:mb-0">
                           <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">{event.title}</h3>
+                            <h3 className="font-semibold">{reg.event?.title}</h3>
                             <div className="rounded-full bg-green-100 text-green-800 text-xs px-2 py-1">
                               Confirmed
                             </div>
                           </div>
                           <p className="text-sm text-muted-foreground mb-2">
-                            {new Date(event.date).toLocaleDateString()} • {event.time}
+                            {reg.event?.date && new Date(reg.event.date).toLocaleDateString()} • {reg.event?.time}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            Ticket #: EVENT-{Math.random().toString().slice(2, 10)}
+                            Ticket ID: {reg.id.slice(0, 8).toUpperCase()}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => alert("Downloading ticket...")}>
                             Download
                           </Button>
-                          <Link to={`/event/${event.id}`}>
+                          <Link to={`/event/${reg.event_id}`}>
                             <Button variant="ghost" size="sm">
                               Details
                             </Button>
@@ -142,11 +178,8 @@ const Dashboard = () => {
                 <Ticket className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No tickets found</h3>
                 <p className="text-muted-foreground mb-6">
-                  You haven't purchased any tickets yet.
+                  You haven't purchased any confirmed tickets yet.
                 </p>
-                <Link to="/events">
-                  <Button>Find Events</Button>
-                </Link>
               </div>
             )}
           </TabsContent>
@@ -163,48 +196,26 @@ const Dashboard = () => {
                       </span>
                     </div>
                     <div>
-                      <h3 className="font-semibold">User</h3>
+                      <h3 className="font-semibold">{user?.name || "User"}</h3>
                       <p className="text-muted-foreground">{user?.email}</p>
+                      <span className="inline-block mt-1 text-xs bg-gray-100 px-2 py-1 rounded">
+                        Role: {user?.role}
+                      </span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Profile fields placeholder */}
                     <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        defaultValue={user?.email || ''}
-                        disabled
-                        className="w-full rounded-md border border-input bg-muted p-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Phone Number
-                      </label>
-                      <input
-                        type="tel"
-                        placeholder="Add phone number"
-                        className="w-full rounded-md border border-input bg-background p-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Location
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Add location"
-                        className="w-full rounded-md border border-input bg-background p-2"
-                      />
+                      <label className="block text-sm font-medium mb-2">Email</label>
+                      <input type="email" value={user?.email || ''} disabled className="w-full p-2 border rounded bg-gray-100" />
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
-                    <Button className="bg-event-purple hover:bg-event-dark-purple">
-                      Save Changes
+                  <div className="flex justify-start pt-4">
+                    <Button variant="destructive" onClick={logout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log Out
                     </Button>
                   </div>
                 </div>

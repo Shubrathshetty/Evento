@@ -25,6 +25,21 @@ from ..crud.event import (
 router = APIRouter(prefix="/api/events", tags=["Events"])
 
 
+def _enrich_event_response(event) -> EventResponse:
+    """Helper to enrich event with registration_count, attendees, and organizer name."""
+    response = EventResponse.model_validate(event)
+    response.registration_count = event.registration_count
+    response.is_full = event.is_full
+    response.attendees = event.registration_count  # Alias for frontend
+    
+    # Get organizer name from creator relationship
+    if event.creator:
+        response.organizer = event.creator.name
+    
+    return response
+
+
+
 @router.get(
     "",
     response_model=EventListResponse,
@@ -44,18 +59,21 @@ def list_events(
     - **category**: Optional category filter
     """
     skip = (page - 1) * per_page
-    events, total = get_events(db, skip=skip, limit=per_page, category=category)
+    # Public endpoint only shows published events by default
+    # You might want to allow admins to see unpublished via a param, but keeping it simple for now
+    events, total = get_events(
+        db, 
+        skip=skip, 
+        limit=per_page, 
+        category=category,
+        only_published=True
+    )
     
-    # Add registration_count and is_full to each event
-    events_with_counts = []
-    for event in events:
-        event_dict = EventResponse.model_validate(event).model_dump()
-        event_dict["registration_count"] = event.registration_count
-        event_dict["is_full"] = event.is_full
-        events_with_counts.append(EventResponse(**event_dict))
+    # Enrich events with counts and organizer info
+    events_with_data = [_enrich_event_response(event) for event in events]
     
     return EventListResponse(
-        events=events_with_counts,
+        events=events_with_data,
         total=total,
         page=page,
         per_page=per_page,
@@ -93,16 +111,11 @@ def search_events_endpoint(
         limit=per_page,
     )
     
-    # Add registration counts
-    events_with_counts = []
-    for event in events:
-        event_dict = EventResponse.model_validate(event).model_dump()
-        event_dict["registration_count"] = event.registration_count
-        event_dict["is_full"] = event.is_full
-        events_with_counts.append(EventResponse(**event_dict))
+    # Enrich events with counts and organizer info
+    events_with_data = [_enrich_event_response(event) for event in events]
     
     return EventListResponse(
-        events=events_with_counts,
+        events=events_with_data,
         total=total,
         page=page,
         per_page=per_page,
@@ -126,11 +139,7 @@ def get_event_details(event_id: UUID, db: DatabaseSession):
             detail="Event not found",
         )
     
-    # Build response with counts
-    response = EventResponse.model_validate(event)
-    response.registration_count = event.registration_count
-    response.is_full = event.is_full
-    return response
+    return _enrich_event_response(event)
 
 
 @router.post(
@@ -172,6 +181,32 @@ def update_event_endpoint(
             detail="Event not found",
         )
     
+    updated_event = update_event(db, event, event_data)
+    return updated_event
+
+
+@router.patch(
+    "/{event_id}/publish",
+    response_model=EventResponse,
+    summary="Publish/Unpublish event (admin only)",
+)
+def publish_event_endpoint(
+    event_id: UUID,
+    is_published: bool,
+    db: DatabaseSession,
+    current_user: CurrentAdminUser,
+):
+    """
+    Toggle event publication status. Requires admin privileges.
+    """
+    event = get_event(db, event_id)
+    if not event:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event not found",
+        )
+    
+    event_data = EventUpdate(is_published=is_published)
     updated_event = update_event(db, event, event_data)
     return updated_event
 

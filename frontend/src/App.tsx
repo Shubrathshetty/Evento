@@ -12,6 +12,8 @@ import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import EventManagement from "./pages/admin/EventManagement";
+import AdminLogin from "./pages/admin/AdminLogin";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +27,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/event/:id" element={<EventDetail />} />
             <Route
@@ -40,6 +43,22 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/events/new"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <EventManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/events/:id/edit"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <EventManagement />
                 </ProtectedRoute>
               }
             />

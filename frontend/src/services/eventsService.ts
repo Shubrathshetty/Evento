@@ -54,9 +54,24 @@ class EventsService {
 
   async searchEvents(query: string): Promise<Event[]> {
     const response = await api.get<EventListResponse>(
-      `/api/events/search?query=${encodeURIComponent(query)}`
+      `/api/events/search?q=${encodeURIComponent(query)}`
     );
     return response.events;
+  }
+
+  // Admin Methods
+
+  async getAdminEvents(page = 1, pageSize = 20, status?: string): Promise<{ events: Event[], total: number }> {
+    let url = `/api/admin/events?page=${page}&per_page=${pageSize}`;
+    if (status) {
+      url += `&status=${status}`;
+    }
+    const response = await api.get<EventListResponse>(url);
+    return { events: response.events, total: response.total };
+  }
+
+  async publishEvent(id: string, isPublished: boolean): Promise<Event> {
+    return await api.patch<Event>(`/api/events/${id}/publish?is_published=${isPublished}`, {});
   }
 }
 

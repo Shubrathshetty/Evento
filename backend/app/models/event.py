@@ -3,7 +3,7 @@ Event Model - Database schema for events
 """
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Integer, Text, ForeignKey
+from sqlalchemy import Column, String, DateTime, Integer, Text, ForeignKey, Numeric, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -25,9 +25,16 @@ class Event(Base):
     description = Column(Text, nullable=True)
     date = Column(DateTime, nullable=False, index=True)
     location = Column(String(255), nullable=True)
+    map_link = Column(String(500), nullable=True)  # Google Maps link
     category = Column(String(100), nullable=True, index=True)
     capacity = Column(Integer, nullable=True)
     image_url = Column(String(500), nullable=True)
+    time = Column(String(50), nullable=True)  # Time of event (e.g., "7:00 PM")
+    price = Column(Integer, nullable=True)  # Price in dollars/cents
+    
+    # New Admin Features
+    registration_deadline = Column(DateTime, nullable=True)
+    is_published = Column(Boolean, default=False, nullable=False)
     
     # Foreign key to creator (User)
     created_by = Column(

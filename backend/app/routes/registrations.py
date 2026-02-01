@@ -117,6 +117,39 @@ def list_event_registrations(
 
 
 @router.get(
+    "/api/users/me/registrations",
+    response_model=RegistrationListResponse,
+    summary="Get current user's registrations",
+)
+def get_my_registrations(
+    db: DatabaseSession,
+    current_user: CurrentUser,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
+    """
+    Get all event registrations for the current authenticated user.
+    """
+    skip = (page - 1) * per_page
+    registrations, total = get_user_registrations(
+        db, current_user.id, skip=skip, limit=per_page
+    )
+    
+    reg_responses = [
+        RegistrationWithEventResponse.model_validate(r) 
+        for r in registrations
+    ]
+    
+    return RegistrationListResponse(
+        registrations=reg_responses,
+        total=total,
+        page=page,
+        per_page=per_page,
+        pages=math.ceil(total / per_page) if total > 0 else 1,
+    )
+
+
+@router.get(
     "/api/users/{user_id}/registrations",
     response_model=list[RegistrationWithEventResponse],
     summary="Get user's registrations",
@@ -134,7 +167,7 @@ def get_user_event_registrations(
     Users can only view their own registrations unless they are admin.
     """
     # Check authorization
-    if current_user.id != user_id and current_user.role.value != "admin":
+    if current_user.id != user_id and current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot view other users' registrations",
@@ -183,7 +216,7 @@ def cancel_event_registration(
     
     # Check authorization
     is_owner = registration.user_id == current_user.id
-    is_admin = current_user.role.value == "admin"
+    is_admin = current_user.role == "admin"
     if not is_owner and not is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -219,3 +252,38 @@ def update_status(
     
     updated = update_registration_status(db, registration, status_update.status)
     return updated
+
+
+@router.delete(
+    "/api/registrations/{registration_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Cancel registration by ID",
+)
+def delete_registration(
+    registration_id: UUID,
+    db: DatabaseSession,
+    current_user: CurrentUser,
+):
+    """
+    Delete/cancel a registration by its ID.
+    
+    Users can cancel their own registrations. Admins can cancel any registration.
+    """
+    registration = get_registration(db, registration_id)
+    if not registration:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Registration not found",
+        )
+    
+    # Check authorization
+    is_owner = registration.user_id == current_user.id
+    is_admin = current_user.role == "admin"
+    if not is_owner and not is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot cancel other users' registrations",
+        )
+    
+    cancel_registration(db, registration)
+    return None

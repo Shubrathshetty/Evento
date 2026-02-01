@@ -49,6 +49,10 @@ export interface Event {
     price?: number;      // Price in dollars
     attendees?: number;  // Alias for registration_count
     organizer?: string;  // Creator's name
+    // Admin fields
+    registration_deadline?: string;
+    is_published?: boolean;
+    map_link?: string;
 }
 
 // Map backend image_url to frontend image
@@ -61,6 +65,12 @@ export interface EventCreate {
     location?: string;
     category?: string;
     capacity?: number;
+    image_url?: string;
+    time?: string;
+    price?: number;
+    registration_deadline?: string;
+    is_published?: boolean;
+    map_link?: string;
 }
 
 export interface EventUpdate {
@@ -70,6 +80,12 @@ export interface EventUpdate {
     location?: string;
     category?: string;
     capacity?: number;
+    image_url?: string;
+    time?: string;
+    price?: number;
+    registration_deadline?: string;
+    is_published?: boolean;
+    map_link?: string;
 }
 
 export interface EventListResponse {

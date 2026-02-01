@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .config import get_settings
 from .database import engine, Base
-from .routes import auth_router, events_router, registrations_router, admin_router
+from .routes import auth_router, events_router, registrations_router, admin_router, payments_router
 
 settings = get_settings()
 
@@ -57,7 +57,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=["http://localhost:8080", "http://localhost:5173", "http://localhost:3000"] + settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -105,6 +105,7 @@ app.include_router(auth_router)
 app.include_router(events_router)
 app.include_router(registrations_router)
 app.include_router(admin_router)
+app.include_router(payments_router)
 
 
 # Health check endpoint

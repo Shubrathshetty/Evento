@@ -32,8 +32,8 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     name = Column(String(255), nullable=False)
     role = Column(
-        SQLEnum(UserRole),
-        default=UserRole.USER,
+        String(20),
+        default="user",
         nullable=False
     )
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

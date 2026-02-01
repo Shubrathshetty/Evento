@@ -41,7 +41,7 @@ async function fetchWithAuth<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = tokenManager.getAccessToken();
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -116,21 +116,27 @@ async function refreshAccessToken(): Promise<boolean> {
 // API methods
 export const api = {
   get: <T>(endpoint: string) => fetchWithAuth<T>(endpoint, { method: 'GET' }),
-  
+
   post: <T>(endpoint: string, data?: unknown) =>
     fetchWithAuth<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
     }),
-  
+
   put: <T>(endpoint: string, data?: unknown) =>
     fetchWithAuth<T>(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined,
     }),
-  
+
   delete: <T>(endpoint: string) =>
     fetchWithAuth<T>(endpoint, { method: 'DELETE' }),
+
+  patch: <T>(endpoint: string, data?: unknown) =>
+    fetchWithAuth<T>(endpoint, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    }),
 };
 
 export default api;

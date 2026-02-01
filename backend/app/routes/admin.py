@@ -111,12 +111,19 @@ def list_all_events(
     current_user: CurrentAdminUser,
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
+    status: Optional[str] = Query(None, description="Filter by status (upcoming, closed, completed)"),
 ):
     """
     Get paginated list of all events with analytics. Requires admin privileges.
     """
     skip = (page - 1) * per_page
-    events, total = get_events(db, skip=skip, limit=per_page)
+    events, total = get_events(
+        db, 
+        skip=skip, 
+        limit=per_page, 
+        status=status,
+        only_published=False  # Admin sees all
+    )
     
     # Add registration counts
     events_with_counts = []

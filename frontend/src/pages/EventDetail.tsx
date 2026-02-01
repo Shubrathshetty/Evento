@@ -227,7 +227,16 @@ const EventDetail = () => {
                 </div>
                 <div className="flex items-center text-gray-700">
                   <MapPin className="h-5 w-5 mr-3 text-event-purple" />
-                  <span className="font-medium">{event.location || "TBD"}</span>
+                  <div>
+                    <span className="font-medium">{event.location || "TBD"}</span>
+                    {event.map_link && (
+                      <div className="text-sm mt-1">
+                        <a href={event.map_link} target="_blank" rel="noopener noreferrer" className="text-event-purple hover:underline">
+                          View on Map
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center text-gray-700">
                   <DollarSign className="h-5 w-5 mr-3 text-event-purple" />
@@ -236,6 +245,15 @@ const EventDetail = () => {
                   </span>
                 </div>
               </div>
+
+              {event.registration_deadline && (
+                <div className="mb-6 p-4 bg-yellow-50 text-yellow-800 rounded-lg border border-yellow-200">
+                  <p className="flex items-center font-medium">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Registration Deadline: {new Date(event.registration_deadline).toLocaleString()}
+                  </p>
+                </div>
+              )}
 
               <h2 className="text-2xl font-semibold mb-4 text-gray-900">About this event</h2>
               <div className="prose max-w-none text-gray-600 leading-relaxed mb-8">
@@ -306,8 +324,8 @@ const EventDetail = () => {
                   ) : isRegistered ? (
                     <div className="space-y-3">
                       <div className={`p-4 rounded-lg text-center ${registrationStatus === 'approved' ? 'bg-green-50 text-green-700 border border-green-200' :
-                          registrationStatus === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
-                            'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                        registrationStatus === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
+                          'bg-yellow-50 text-yellow-700 border border-yellow-200'
                         }`}>
                         <p className="font-semibold">
                           {registrationStatus === 'approved' ? 'Ticket Confirmed' :

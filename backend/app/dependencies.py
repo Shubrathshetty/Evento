@@ -67,7 +67,8 @@ async def get_current_admin_user(
     Raises:
         HTTPException 403: If user is not an admin
     """
-    if current_user.role != UserRole.ADMIN:
+    print(f"DEBUG: User role = '{current_user.role}', type = {type(current_user.role)}")
+    if current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required",

@@ -15,9 +15,14 @@ class EventCreate(BaseModel):
     description: Optional[str] = None
     date: datetime
     location: Optional[str] = Field(None, max_length=255)
+    map_link: Optional[str] = Field(None, max_length=500)
     category: Optional[str] = Field(None, max_length=100)
     capacity: Optional[int] = Field(None, ge=1)
     image_url: Optional[str] = Field(None, max_length=500)
+    time: Optional[str] = Field(None, max_length=50)
+    price: Optional[int] = Field(None, ge=0)
+    registration_deadline: Optional[datetime] = None
+    is_published: bool = False
 
 
 class EventUpdate(BaseModel):
@@ -26,9 +31,14 @@ class EventUpdate(BaseModel):
     description: Optional[str] = None
     date: Optional[datetime] = None
     location: Optional[str] = Field(None, max_length=255)
+    map_link: Optional[str] = Field(None, max_length=500)
     category: Optional[str] = Field(None, max_length=100)
     capacity: Optional[int] = Field(None, ge=1)
     image_url: Optional[str] = Field(None, max_length=500)
+    time: Optional[str] = Field(None, max_length=50)
+    price: Optional[int] = Field(None, ge=0)
+    registration_deadline: Optional[datetime] = None
+    is_published: Optional[bool] = None
 
 
 class EventResponse(BaseModel):
@@ -38,14 +48,21 @@ class EventResponse(BaseModel):
     description: Optional[str]
     date: datetime
     location: Optional[str]
+    map_link: Optional[str]
     category: Optional[str]
     capacity: Optional[int]
     image_url: Optional[str]
+    time: Optional[str]
+    price: Optional[int]
+    registration_deadline: Optional[datetime]
+    is_published: bool
     created_by: Optional[UUID]
     created_at: datetime
     updated_at: datetime
     registration_count: int = 0
     is_full: bool = False
+    attendees: int = 0  # Alias for registration_count for frontend compatibility
+    organizer: Optional[str] = None  # Creator's name
 
     class Config:
         from_attributes = True
