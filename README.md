@@ -1,73 +1,116 @@
-# Welcome to your Lovable project
+# Evento - Full Stack Monorepo
 
-## Project info
+## Project Structure
 
-**URL**: https://lovable.dev/projects/4fa267a3-88ca-488b-86a1-38f088be6eef
+```
+evento/
+├── frontend/          # React/Vite frontend
+├── backend/           # FastAPI Python backend
+└── docker-compose.yml # Docker orchestration
+```
 
-## How can I edit this code?
+## Quick Start
 
-There are several ways of editing your application.
+### Prerequisites
+- Node.js 18+ (for frontend)
+- Python 3.11+ (for backend)
+- Docker & Docker Compose (for PostgreSQL)
 
-**Use Lovable**
+### 1. Start PostgreSQL Database
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4fa267a3-88ca-488b-86a1-38f088be6eef) and start prompting.
+```bash
+docker-compose up -d db
+```
 
-Changes made via Lovable will be committed automatically to this repo.
+### 2. Setup Backend
 
-**Use your preferred IDE**
+```bash
+cd backend
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+# Create virtual environment
+python -m venv venv
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+# Activate virtual environment
+# Windows:
+.\venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
 
-Follow these steps:
+# Install dependencies
+pip install -r requirements.txt
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Copy environment file
+cp .env.example .env
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Run database migrations
+alembic upgrade head
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Start development server
+uvicorn app.main:app --reload
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Backend will be available at: http://localhost:8000
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+### 3. Setup Frontend
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Frontend will be available at: http://localhost:5173
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Docker Compose
 
-**Use GitHub Codespaces**
+Run the full stack with Docker:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+# Start all services
+docker-compose up
 
-## What technologies are used for this project?
+# Start in background
+docker-compose up -d
 
-This project is built with:
+# Stop services
+docker-compose down
 
-- Vite
+# Reset database
+docker-compose down -v
+```
+
+## Environment Variables
+
+See `.env.example` files in root and backend directories.
+
+## API Documentation
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+## Tech Stack
+
+### Frontend
+- React 18
 - TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Vite
+- TailwindCSS
+- shadcn/ui
 
-## How can I deploy this project?
+### Backend
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Alembic (migrations)
+- JWT Authentication
+- Pydantic
 
-Simply open [Lovable](https://lovable.dev/projects/4fa267a3-88ca-488b-86a1-38f088be6eef) and click on Share -> Publish.
+## License
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+MIT
