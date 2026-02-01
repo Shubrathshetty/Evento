@@ -1,12 +1,12 @@
 // Legacy compatibility layer for components still using the old events.ts interface
-// This file now delegates to the Supabase-based eventsService
+// This file now delegates to the FastAPI-based eventsService
 
 import { eventsService, type Event } from '@/services/eventsService'
 
 // Re-export the Event type for backward compatibility
 export type { Event }
 
-// Legacy functions for backward compatibility - these now use Supabase
+// Legacy functions for backward compatibility - these now use FastAPI
 export const getEventById = async (id: string): Promise<Event | null> => {
   try {
     return await eventsService.getEventById(id)

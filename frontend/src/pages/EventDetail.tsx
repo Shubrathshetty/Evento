@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -14,10 +13,11 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { eventsService, type Event } from "@/services/eventsService";
 import { registrationsService } from "@/services/registrationsService";
+import { paymentsService } from "@/services/paymentsService";
 import { useToast } from "@/hooks/use-toast";
+import PaymentModal from "@/components/PaymentModal";
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +28,7 @@ const EventDetail = () => {
   const [registering, setRegistering] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -56,18 +57,14 @@ const EventDetail = () => {
       if (!user || !id) return;
 
       try {
-        const registered = await registrationsService.isUserRegistered(id, user.id);
+        const registered = await registrationsService.isUserRegistered(id);
         setIsRegistered(registered);
 
         if (registered) {
-          const { data } = await supabase
-            .from('registrations')
-            .select('status')
-            .eq('event_id', id)
-            .eq('user_id', user.id)
-            .single();
-
-          setRegistrationStatus(data?.status || null);
+          // Get registration status from user's registrations
+          const myRegistrations = await registrationsService.getMyRegistrations();
+          const thisReg = myRegistrations.find(r => r.event_id === id);
+          setRegistrationStatus(thisReg?.status || null);
         }
       } catch (error) {
         console.error('Error checking registration:', error);
@@ -77,17 +74,27 @@ const EventDetail = () => {
     checkRegistration();
   }, [user, id]);
 
-  const handleRegister = async () => {
+  const handleRegisterClick = () => {
+    if (!user || !event) return;
+
+    if (event.price && event.price > 0) {
+      setShowPaymentModal(true);
+    } else {
+      performRegistration();
+    }
+  };
+
+  const performRegistration = async () => {
     if (!user || !event) return;
 
     setRegistering(true);
     try {
-      await registrationsService.registerForEvent(event.id, user.id);
+      await registrationsService.registerForEvent(event.id);
       setIsRegistered(true);
       setRegistrationStatus('pending');
       toast({
-        title: "Registration Submitted",
-        description: "Your registration is pending approval.",
+        title: "Registration Successful",
+        description: event.price ? "Payment processed and registration confirmed!" : "You have successfully registered for this event.",
       });
     } catch (error) {
       console.error('Error registering:', error);
@@ -99,6 +106,20 @@ const EventDetail = () => {
     } finally {
       setRegistering(false);
     }
+  };
+
+  const handlePaymentConfirm = async () => {
+    if (!event) return;
+
+    // 1. Process Payment
+    await paymentsService.processPayment({
+      event_id: event.id,
+      amount: event.price || 0,
+      payment_method_id: "tok_visa", // Mock token
+    });
+
+    // 2. Perform Registration
+    await performRegistration();
   };
 
   if (loading) {
@@ -139,6 +160,22 @@ const EventDetail = () => {
     });
   };
 
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  // Fallback values for missing fields
+  const eventImage = event.image_url || `https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&h=800&fit=crop`;
+  const eventTime = event.time || formatTime(event.date);
+  const eventOrganizer = event.organizer || "Event Organizer";
+  const eventAttendees = event.attendees || event.registration_count || 0;
+  const eventCapacity = event.capacity || 100;
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -161,65 +198,68 @@ const EventDetail = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Event Details */}
           <div className="md:col-span-2">
-            <div className="rounded-lg overflow-hidden mb-6">
+            <div className="rounded-lg overflow-hidden mb-6 shadow-md">
               <img
-                src={event.image}
+                src={eventImage}
                 alt={event.title}
-                className="w-full h-80 object-cover"
+                className="w-full h-96 object-cover"
               />
             </div>
 
             <div className="mb-8">
-              <div className="flex items-center gap-4 mb-4">
+              <div className="flex flex-wrap items-center gap-4 mb-4">
                 <h1 className="text-3xl font-bold">{event.title}</h1>
-                <Badge className="bg-event-purple hover:bg-event-dark-purple">
-                  {event.category}
-                </Badge>
+                {event.category && (
+                  <Badge className="bg-event-purple hover:bg-event-dark-purple text-sm px-3 py-1">
+                    {event.category}
+                  </Badge>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                <div className="flex items-center text-muted-foreground">
-                  <CalendarDays className="h-5 w-5 mr-2 text-event-purple" />
-                  <span>{formatDate(event.date)}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 bg-gray-50 p-6 rounded-xl">
+                <div className="flex items-center text-gray-700">
+                  <CalendarDays className="h-5 w-5 mr-3 text-event-purple" />
+                  <span className="font-medium">{formatDate(event.date)}</span>
                 </div>
-                <div className="flex items-center text-muted-foreground">
-                  <Clock className="h-5 w-5 mr-2 text-event-purple" />
-                  <span>{event.time}</span>
+                <div className="flex items-center text-gray-700">
+                  <Clock className="h-5 w-5 mr-3 text-event-purple" />
+                  <span className="font-medium">{eventTime}</span>
                 </div>
-                <div className="flex items-center text-muted-foreground">
-                  <MapPin className="h-5 w-5 mr-2 text-event-purple" />
-                  <span>{event.location}</span>
+                <div className="flex items-center text-gray-700">
+                  <MapPin className="h-5 w-5 mr-3 text-event-purple" />
+                  <span className="font-medium">{event.location || "TBD"}</span>
                 </div>
-                <div className="flex items-center text-muted-foreground">
-                  <DollarSign className="h-5 w-5 mr-2 text-event-purple" />
-                  <span>
+                <div className="flex items-center text-gray-700">
+                  <DollarSign className="h-5 w-5 mr-3 text-event-purple" />
+                  <span className="font-medium text-lg">
                     {event.price ? `$${event.price}` : "Free"}
                   </span>
                 </div>
               </div>
 
-              <h2 className="text-xl font-semibold mb-3">About this event</h2>
-              <p className="text-muted-foreground whitespace-pre-line">
-                {event.description}
-                <br /><br />
-                Join us for an unforgettable experience at {event.title}. This event offers 
-                a unique opportunity to connect with others who share your interests and learn 
-                from experts in the field.
-                <br /><br />
-                Don't miss out on this fantastic event! Seats are limited, so reserve 
-                your spot today.
-              </p>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-900">About this event</h2>
+              <div className="prose max-w-none text-gray-600 leading-relaxed mb-8">
+                <p className="whitespace-pre-line text-lg">
+                  {event.description || "No description available."}
+                </p>
+                <p className="mt-4">
+                  Do not miss this opportunity to connect with like-minded individuals and be part of an amazing experience.
+                  Whether you are looking to learn, network, or just have fun, this event has something for everyone.
+                </p>
+              </div>
 
-              <h2 className="text-xl font-semibold mt-8 mb-3">Organizer</h2>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-event-light-purple rounded-full flex items-center justify-center">
-                  <span className="font-bold text-event-purple">
-                    {event.organizer.charAt(0)}
-                  </span>
-                </div>
-                <div>
-                  <p className="font-semibold">{event.organizer}</p>
-                  <p className="text-sm text-muted-foreground">Event Organizer</p>
+              <div className="border-t pt-8">
+                <h2 className="text-xl font-semibold mb-4">Organizer</h2>
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-event-light-purple rounded-full flex items-center justify-center text-xl">
+                    <span className="font-bold text-event-purple">
+                      {eventOrganizer.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg">{eventOrganizer}</p>
+                    <p className="text-sm text-muted-foreground">Hosted by {eventOrganizer}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -227,30 +267,30 @@ const EventDetail = () => {
 
           {/* Registration Card */}
           <div>
-            <Card className="sticky top-24">
+            <Card className="sticky top-24 shadow-lg border-t-4 border-t-event-purple">
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-6">Registration</h3>
-                <div className="space-y-4 mb-6">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Price</span>
-                    <span className="font-semibold">
+                <h3 className="text-2xl font-bold mb-6 text-center">Registration</h3>
+                <div className="space-y-4 mb-8">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Price</span>
+                    <span className="font-bold text-xl text-event-purple">
                       {event.price ? `$${event.price}` : "Free"}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Date</span>
-                    <span>{formatDate(event.date)}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Date</span>
+                    <span className="font-medium">{formatDate(event.date)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Time</span>
-                    <span>{event.time}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Time</span>
+                    <span className="font-medium">{eventTime}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Availability</span>
-                    <div className="flex items-center">
-                      <Users className="h-4 w-4 mr-1 text-event-purple" />
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-600">Availability</span>
+                    <div className="flex items-center text-green-600 font-medium">
+                      <Users className="h-4 w-4 mr-1" />
                       <span>
-                        {event.capacity - event.attendees} spots left
+                        {Math.max(0, eventCapacity - eventAttendees)} spots left
                       </span>
                     </div>
                   </div>
@@ -259,58 +299,61 @@ const EventDetail = () => {
                 <div className="space-y-3">
                   {!user ? (
                     <Link to="/auth">
-                      <Button className="w-full bg-event-purple hover:bg-event-dark-purple">
+                      <Button className="w-full bg-event-purple hover:bg-event-dark-purple h-12 text-lg">
                         Sign In to Register
                       </Button>
                     </Link>
                   ) : isRegistered ? (
-                    <div className="space-y-2">
-                      <Button
-                        className="w-full"
-                        disabled
-                        variant={registrationStatus === 'approved' ? 'default' : 'secondary'}
-                      >
-                        {registrationStatus === 'approved'
-                          ? 'Registration Approved'
-                          : registrationStatus === 'pending'
-                          ? 'Registration Pending'
-                          : 'Registration Rejected'
-                        }
-                      </Button>
-                      {registrationStatus === 'approved' && (
-                        <p className="text-sm text-green-600 text-center">
-                          Your ticket has been issued!
+                    <div className="space-y-3">
+                      <div className={`p-4 rounded-lg text-center ${registrationStatus === 'approved' ? 'bg-green-50 text-green-700 border border-green-200' :
+                          registrationStatus === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
+                            'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                        }`}>
+                        <p className="font-semibold">
+                          {registrationStatus === 'approved' ? 'Ticket Confirmed' :
+                            registrationStatus === 'rejected' ? 'Registration Rejected' : 'Pending Approval'}
                         </p>
+                      </div>
+
+                      {registrationStatus === 'approved' && (
+                        <Button className="w-full" variant="outline">
+                          View Ticket
+                        </Button>
                       )}
                     </div>
                   ) : (
                     <Button
-                      className="w-full bg-event-purple hover:bg-event-dark-purple"
-                      onClick={handleRegister}
-                      disabled={registering}
+                      className="w-full bg-event-purple hover:bg-event-dark-purple h-12 text-lg shadow-md hover:shadow-lg transition-all"
+                      onClick={handleRegisterClick}
+                      disabled={registering || (eventCapacity - eventAttendees <= 0)}
                     >
                       {registering ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Registering...
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          Processing...
                         </>
+                      ) : (eventCapacity - eventAttendees <= 0) ? (
+                        'Sold Out'
                       ) : (
                         'Register Now'
                       )}
                     </Button>
                   )}
-                  <Button variant="outline" className="w-full">
-                    Save for Later
-                  </Button>
-                </div>
-
-                <div className="mt-6 text-center text-sm text-muted-foreground">
-                  <p>Need help? Contact the organizer</p>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
+
+        {event && (
+          <PaymentModal
+            isOpen={showPaymentModal}
+            onClose={() => setShowPaymentModal(false)}
+            onConfirm={handlePaymentConfirm}
+            amount={event.price || 0}
+            eventName={event.title}
+          />
+        )}
       </main>
 
       <Footer />

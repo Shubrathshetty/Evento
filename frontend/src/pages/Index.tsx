@@ -1,32 +1,56 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import FeaturedEvents from "@/components/FeaturedEvents";
 import Footer from "@/components/Footer";
-import { getFeaturedEvents } from "@/data/events";
+import { getFeaturedEvents, Event } from "@/data/events";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, MapPin, Ticket } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
-  const featuredEvents = getFeaturedEvents();
+  const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const events = await getFeaturedEvents();
+        setFeaturedEvents(events);
+      } catch (error) {
+        console.error('Error loading featured events:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEvents();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      
+
       <main className="flex-grow">
         <HeroSection />
-        
-        <FeaturedEvents events={featuredEvents} />
+
+        {loading ? (
+          <section className="py-16 bg-event-soft-gray">
+            <div className="container text-center">
+              <p className="text-muted-foreground">Loading events...</p>
+            </div>
+          </section>
+        ) : (
+          <FeaturedEvents events={featuredEvents} />
+        )}
 
         {/* Categories Section */}
         <section className="py-16 container">
           <h2 className="text-3xl font-bold tracking-tight text-center mb-10">
             Explore Event Categories
           </h2>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { name: "Technology", icon: <CalendarDays className="h-8 w-8 mb-2 mx-auto" />, color: "bg-blue-100" },
@@ -38,7 +62,7 @@ const Index = () => {
               { name: "Education", icon: <CalendarDays className="h-8 w-8 mb-2 mx-auto" />, color: "bg-indigo-100" },
               { name: "Charity", icon: <CalendarDays className="h-8 w-8 mb-2 mx-auto" />, color: "bg-orange-100" },
             ].map((category) => (
-              <Link 
+              <Link
                 key={category.name}
                 to={`/events?category=${category.name}`}
                 className={`${category.color} p-6 rounded-lg text-center transition-transform hover:scale-105`}
@@ -56,7 +80,7 @@ const Index = () => {
             <h2 className="text-3xl font-bold tracking-tight text-center mb-12">
               How EventO Works
             </h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 bg-event-purple rounded-full flex items-center justify-center mb-4">
@@ -67,7 +91,7 @@ const Index = () => {
                   Discover events that match your interests and fit your schedule.
                 </p>
               </div>
-              
+
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 bg-event-purple rounded-full flex items-center justify-center mb-4">
                   <CalendarDays className="h-8 w-8 text-white" />
@@ -77,7 +101,7 @@ const Index = () => {
                   Register for events easily and get all the information you need.
                 </p>
               </div>
-              
+
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 bg-event-purple rounded-full flex items-center justify-center mb-4">
                   <MapPin className="h-8 w-8 text-white" />
@@ -119,7 +143,7 @@ const Index = () => {
           </div>
         </section>
       </main>
-      
+
       <Footer />
     </div>
   );
