@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Please enter a valid email address');
-const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+const passwordSchema = z.string().min(8, 'Password must be at least 8 characters');
 const nameSchema = z.string().min(2, 'Name must be at least 2 characters');
 
 const Auth = () => {
@@ -33,7 +33,7 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       emailSchema.parse(loginEmail);
       passwordSchema.parse(loginPassword);
@@ -55,7 +55,7 @@ const Auth = () => {
     if (error) {
       toast({
         title: 'Login Failed',
-        description: error.message === 'Invalid login credentials' 
+        description: error.message === 'Invalid login credentials'
           ? 'Invalid email or password. Please try again.'
           : error.message,
         variant: 'destructive',
@@ -158,9 +158,9 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <Button 
-                  type="submit" 
-                  className="w-full bg-primary hover:bg-primary/90" 
+                <Button
+                  type="submit"
+                  className="w-full bg-primary hover:bg-primary/90"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Signing in...' : 'Sign In'}
@@ -203,9 +203,9 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <Button 
-                  type="submit" 
-                  className="w-full bg-primary hover:bg-primary/90" 
+                <Button
+                  type="submit"
+                  className="w-full bg-primary hover:bg-primary/90"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Creating account...' : 'Create Account'}

@@ -193,13 +193,14 @@ const AdminDashboard = () => {
                     <th className="p-4 text-left font-medium">Event</th>
                     <th className="p-4 text-left font-medium hidden md:table-cell">Date & Time</th>
                     <th className="p-4 text-left font-medium hidden md:table-cell">Status</th>
+                    <th className="p-4 text-left font-medium hidden md:table-cell">Attendees</th>
                     <th className="p-4 text-left font-medium hidden md:table-cell">Reg. Deadline</th>
                     <th className="p-4 text-left font-medium text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {events.length === 0 ? (
-                    <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No events found in this category.</td></tr>
+                    <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No events found in this category.</td></tr>
                   ) : (
                     events.map((event) => (
                       <tr key={event.id} className="border-b transition-colors hover:bg-muted/50">
@@ -223,6 +224,12 @@ const AdminDashboard = () => {
                               <Badge variant="secondary">Draft</Badge>
                             )}
                             {event.is_full && <Badge variant="destructive">Full</Badge>}
+                          </div>
+                        </td>
+                        <td className="p-4 hidden md:table-cell">
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">{event.registration_count || 0}</span>
+                            <span className="text-muted-foreground">/ {event.capacity || "∞"}</span>
                           </div>
                         </td>
                         <td className="p-4 hidden md:table-cell text-muted-foreground">
@@ -254,12 +261,77 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
 
-          {/* OTHER TABS (Placeholder for now) */}
-          <TabsContent value="registrations">
+          {/* REGISTRATIONS TAB */}
+          <TabsContent value="registrations" className="space-y-6">
             <Card>
-              <CardHeader><CardTitle>Registration Management</CardTitle></CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Registration Management</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => loadData()}>
+                  Refresh
+                </Button>
+              </CardHeader>
               <CardContent>
-                <p>Full registration management table goes here...</p>
+                <div className="rounded-md border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="p-4 text-left font-medium">User</th>
+                        <th className="p-4 text-left font-medium">Event</th>
+                        <th className="p-4 text-left font-medium hidden md:table-cell">Date Registered</th>
+                        <th className="p-4 text-left font-medium">Status</th>
+                        <th className="p-4 text-right font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {registrations.length === 0 ? (
+                        <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No registrations found.</td></tr>
+                      ) : (
+                        registrations.map((reg) => (
+                          <tr key={reg.id} className="border-b transition-colors hover:bg-muted/50">
+                            <td className="p-4">
+                              <div className="font-medium">{reg.user?.name || "Unknown User"}</div>
+                              <div className="text-xs text-muted-foreground">{reg.user?.email}</div>
+                            </td>
+                            <td className="p-4">
+                              <div className="font-medium">{reg.event?.title || "Unknown Event"}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {reg.event?.date ? new Date(reg.event.date).toLocaleDateString() : ""}
+                              </div>
+                            </td>
+                            <td className="p-4 hidden md:table-cell text-muted-foreground">
+                              {new Date(reg.registration_date).toLocaleString()}
+                            </td>
+                            <td className="p-4">
+                              <Badge variant={
+                                reg.status === 'confirmed' ? "default" :
+                                  reg.status === 'cancelled' ? "destructive" : "secondary"
+                              }>
+                                {reg.status.charAt(0).toUpperCase() + reg.status.slice(1)}
+                              </Badge>
+                            </td>
+                            <td className="p-4 text-right">
+                              {reg.status !== 'cancelled' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                  onClick={async () => {
+                                    if (confirm("Cancel this registration?")) {
+                                      await registrationsService.cancelRegistration(reg.id);
+                                      loadData(); // Refresh
+                                    }
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

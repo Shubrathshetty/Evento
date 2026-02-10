@@ -24,7 +24,8 @@ const AdminLogin = () => {
             // User requested "fixed" credentials. 
             // We will still authenticate against backend for security, 
             // but purely UI-wise it looks like a dedicated portal.
-            await signIn(email, password);
+            const { error } = await signIn(email, password);
+            if (error) throw error;
 
             // We check role after login in the protected route, 
             // but we can also check here if we verify the decoded token.

@@ -1,6 +1,7 @@
 """
 Admin Routes - Admin-only endpoints for dashboard, users, and settings
 """
+from typing import Optional
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, status, Query
 from sqlalchemy.orm import Session

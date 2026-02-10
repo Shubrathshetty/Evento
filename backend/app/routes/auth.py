@@ -12,11 +12,13 @@ from ..schemas.user import (
     UserResponse,
     TokenResponse,
     RefreshTokenRequest,
+    UserUpdate,
 )
 from ..crud.user import (
     create_user,
     get_user_by_email,
     authenticate_user,
+    update_user,
 )
 from ..utils.security import (
     create_access_token,
@@ -129,3 +131,32 @@ def get_me(current_user: CurrentUser):
     Requires valid access token.
     """
     return current_user
+
+
+@router.put(
+    "/me",
+    response_model=UserResponse,
+    summary="Update current user profile",
+)
+def update_me(
+    user_update: UserUpdate,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+):
+    """
+    Update the currently authenticated user's profile.
+    
+    - **name**: Update display name
+    - **email**: Update email address (must be unique)
+    """
+    # If email is being updated, check for uniqueness
+    if user_update.email and user_update.email != current_user.email:
+        existing_user = get_user_by_email(db, user_update.email)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered",
+            )
+    
+    updated_user = update_user(db, current_user, user_update)
+    return updated_user

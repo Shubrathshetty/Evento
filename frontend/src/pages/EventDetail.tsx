@@ -27,7 +27,7 @@ const EventDetail = () => {
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
-  const [registrationStatus, setRegistrationStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
+  const [registrationStatus, setRegistrationStatus] = useState<'pending' | 'confirmed' | 'cancelled' | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
@@ -323,17 +323,17 @@ const EventDetail = () => {
                     </Link>
                   ) : isRegistered ? (
                     <div className="space-y-3">
-                      <div className={`p-4 rounded-lg text-center ${registrationStatus === 'approved' ? 'bg-green-50 text-green-700 border border-green-200' :
-                        registrationStatus === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
+                      <div className={`p-4 rounded-lg text-center ${registrationStatus === 'confirmed' ? 'bg-green-50 text-green-700 border border-green-200' :
+                        registrationStatus === 'cancelled' ? 'bg-red-50 text-red-700 border border-red-200' :
                           'bg-yellow-50 text-yellow-700 border border-yellow-200'
                         }`}>
                         <p className="font-semibold">
-                          {registrationStatus === 'approved' ? 'Ticket Confirmed' :
-                            registrationStatus === 'rejected' ? 'Registration Rejected' : 'Pending Approval'}
+                          {registrationStatus === 'confirmed' ? 'Registered' :
+                            registrationStatus === 'cancelled' ? 'Registration Cancelled' : 'Pending Approval'}
                         </p>
                       </div>
 
-                      {registrationStatus === 'approved' && (
+                      {registrationStatus === 'confirmed' && (
                         <Button className="w-full" variant="outline">
                           View Ticket
                         </Button>

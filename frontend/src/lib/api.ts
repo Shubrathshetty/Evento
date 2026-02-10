@@ -3,7 +3,7 @@
  * Handles HTTP requests with JWT authentication
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'evento_access_token';

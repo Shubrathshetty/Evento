@@ -13,6 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateProfile: (name: string, email: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,7 +83,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: null };
     } catch (error) {
       const apiError = error as ApiError;
-      const message = (apiError.data as { detail?: string })?.detail || 'Signup failed';
+      const message =
+        typeof (apiError.data as any)?.detail === 'string'
+          ? (apiError.data as any).detail
+          : Array.isArray((apiError.data as any)?.detail)
+            ? (apiError.data as any).detail[0].msg
+            : 'Signup failed';
+
+      console.error("Signup Error Details:", apiError);
       return { error: new Error(message) };
     }
   };
@@ -101,6 +109,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       const apiError = error as ApiError;
       const message = (apiError.data as { detail?: string })?.detail || 'Login failed';
+      return { error: new Error(message) };
+    }
+  };
+
+  const updateProfile = async (name: string, email: string) => {
+    try {
+      const updatedUser = await api.put<User>('/api/auth/me', { name, email });
+      setUser(updatedUser);
+      return { error: null };
+    } catch (error) {
+      const apiError = error as ApiError;
+      const message = (apiError.data as { detail?: string })?.detail || 'Update failed';
       return { error: new Error(message) };
     }
   };
@@ -125,6 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signOut,
         refreshUser,
+        updateProfile,
       }}
     >
       {children}

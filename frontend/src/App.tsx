@@ -8,7 +8,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import EventsPage from "./pages/EventsPage";
 import EventDetail from "./pages/EventDetail";
-import Dashboard from "./pages/Dashboard";
+import UserDashboard from "./pages/UserDashboard";
+import TicketView from "./pages/TicketView";
 import AdminDashboard from "./pages/AdminDashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -30,11 +31,20 @@ const App = () => (
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/event/:id" element={<EventDetail />} />
+            <Route path="/event/:id" element={<EventDetail />} />
             <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <UserDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tickets/:id"
+              element={
+                <ProtectedRoute>
+                  <TicketView />
                 </ProtectedRoute>
               }
             />

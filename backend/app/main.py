@@ -57,7 +57,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://localhost:5173", "http://localhost:3000"] + settings.cors_origins,
+    allow_origins=["http://localhost:8080", "http://127.0.0.1:8080", "http://0.0.0.0:8080", "http://localhost:5173", "http://localhost:3000"] + settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -95,7 +95,7 @@ async def database_exception_handler(
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
-            "detail": "Database error occurred",
+            "detail": str(exc),
         },
     )
 
