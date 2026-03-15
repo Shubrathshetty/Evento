@@ -1,4 +1,4 @@
-# Evento - Full Stack Monorepo
+# Evento - Full Stack Monorepo Project 
 
 ## Project Structure
 
